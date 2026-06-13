@@ -20,9 +20,9 @@ jobs:
       matrix:
         include:
           - arch: x86_64
-            runner: ${{ (github.repository == 'vicinaehq/vicinae' && '["self-hosted", "Linux", "X64", "prod"]') || 'ubuntu-latest' }}
+            runner: ${{ github.repository == 'vicinaehq/vicinae' && '["self-hosted", "Linux", "X64", "prod"]' || '["ubuntu-latest"]' }}
           - arch: aarch64
-            runner: '"ubuntu-24.04-arm"'
+            runner: '["ubuntu-24.04-arm"]'
     runs-on: ${{ fromJSON(matrix.runner) }}
     permissions:
       contents: write
@@ -187,9 +187,9 @@ jobs:
       matrix:
         include:
           - arch: x86_64
-            runner: ${{ (github.repository == 'vicinaehq/vicinae' && '["self-hosted", "Linux", "X64", "appimage"]') || 'ubuntu-latest' }}
+            runner: ${{ github.repository == 'vicinaehq/vicinae' && '["self-hosted", "Linux", "X64", "appimage"]' || '["ubuntu-latest"]' }}
           - arch: aarch64
-            runner: '"ubuntu-24.04-arm"'
+            runner: '["ubuntu-24.04-arm"]'
     runs-on: ${{ fromJSON(matrix.runner) }}
     permissions:
       contents: write
