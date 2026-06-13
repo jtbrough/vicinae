@@ -15,7 +15,6 @@ jobs:
   build:
     strategy:
       matrix:
-        arch: [x86_64, aarch64]
         include:
           - arch: x86_64
             runner: [self-hosted, Linux, X64, appimage]

@@ -15,22 +15,25 @@ jobs:
   build:
     strategy:
       matrix:
-        arch: [x86_64, aarch64]
-        compiler:
-          - name: GCC
-            cc: gcc
-            cxx: g++
-          - name: Clang
-            cc: clang
-            cxx: clang++
         include:
           - arch: x86_64
+            compiler_name: GCC
+            cc: gcc
+            cxx: g++
+            runner: [self-hosted, Linux, X64, prod]
+          - arch: x86_64
+            compiler_name: Clang
+            cc: clang
+            cxx: clang++
             runner: [self-hosted, Linux, X64, prod]
           - arch: aarch64
+            compiler_name: GCC
+            cc: gcc
+            cxx: g++
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
 
-    name: Build (${{ matrix.arch }}, ${{ matrix.compiler.name }})
+    name: Build (${{ matrix.arch }}, ${{ matrix.compiler_name }})
 
     steps:
       - name: Checkout code
@@ -45,9 +48,10 @@ jobs:
       - name: Configure CMake
         run: |
           if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
-            nix develop --command cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.compiler.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}
+            # We don't pass compilers here, nix develop shellHook sets CC/CXX to gcc15
+            nix develop --command cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
           else
-            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_PREFIX_PATH=$Qt6_DIR -DCMAKE_C_COMPILER=${{ matrix.compiler.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}
+            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_PREFIX_PATH=$Qt6_DIR -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
           fi
 
       - name: Build
