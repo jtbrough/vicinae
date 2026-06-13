@@ -36,12 +36,32 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Nix
+        if: matrix.arch == 'aarch64'
+        uses: cachix/install-nix-action@v30
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
       - name: Configure CMake
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_PREFIX_PATH=$Qt6_DIR -DCMAKE_C_COMPILER=${{ matrix.compiler.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+            nix develop --command cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.compiler.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}
+          else
+            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_PREFIX_PATH=$Qt6_DIR -DCMAKE_C_COMPILER=${{ matrix.compiler.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}
+          fi
 
       - name: Build
-        run: cmake --build build --parallel $(nproc)
+        run: |
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+            nix develop --command cmake --build build --parallel $(nproc)
+          else
+            cmake --build build --parallel $(nproc)
+          fi
 
       - name: Run Tests
-        run: make test
+        run: |
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+            nix develop --command make test
+          else
+            make test
+          fi

@@ -29,6 +29,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Nix
+        if: matrix.arch == 'aarch64'
+        uses: cachix/install-nix-action@v30
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
@@ -37,18 +43,34 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -S . -B build -G Ninja              \
-          -DCMAKE_BUILD_TYPE=Release                \
-          -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+            nix develop --command cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
+          else
+            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
+          fi
 
       - name: Build
-        run: cmake --build build --parallel ${nproc}
+        run: |
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+            nix develop --command cmake --build build --parallel $(nproc)
+          else
+            cmake --build build --parallel $(nproc)
+          fi
 
       - name: Install
-        run: cmake --install build
+        run: |
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+            nix develop --command cmake --install build
+          else
+            cmake --install build
+          fi
 
       - name: Make AppImage
         run: |
           chmod +x ./scripts/mkappimage.sh
-          ./scripts/mkappimage.sh "${INSTALL_DIR}" AppDir
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+             nix develop --command ./scripts/mkappimage.sh "${INSTALL_DIR}" AppDir
+          else
+             ./scripts/mkappimage.sh "${INSTALL_DIR}" AppDir
+          fi
 

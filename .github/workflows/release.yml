@@ -64,33 +64,63 @@ jobs:
           fetch-depth: 0
           ref: ${{ steps.meta.outputs.tag }}
 
+      - name: Install Nix
+        if: matrix.arch == 'aarch64'
+        uses: cachix/install-nix-action@v30
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
       - name: Prepare dirs
         run: mkdir -p build install
 
       - name: Configure CMake
         run: |
-          cd build
-          cmake -G Ninja .. \
-            -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
-            -DCMAKE_POLICY_VERSION_MINIMUM=3.5  \
-            -DBUILD_TESTS=ON  \
-            -DVICINAE_PROVENANCE=binary_release \
-            -DLTO=ON \
-            -DUSE_SYSTEM_CMARK_GFM=OFF \
-            -DCMAKE_PREFIX_PATH="$Qt6_DIR" \
-            -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+             nix develop --command cmake -G Ninja -S . -B build \
+               -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+               -DCMAKE_POLICY_VERSION_MINIMUM=3.5  \
+               -DBUILD_TESTS=ON  \
+               -DVICINAE_PROVENANCE=binary_release \
+               -DLTO=ON \
+               -DUSE_SYSTEM_CMARK_GFM=OFF \
+               -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
+          else
+            cd build
+            cmake -G Ninja .. \
+              -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+              -DCMAKE_POLICY_VERSION_MINIMUM=3.5  \
+              -DBUILD_TESTS=ON  \
+              -DVICINAE_PROVENANCE=binary_release \
+              -DLTO=ON \
+              -DUSE_SYSTEM_CMARK_GFM=OFF \
+              -DCMAKE_PREFIX_PATH="$Qt6_DIR" \
+              -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
+          fi
 
       - name: Build
         run: |
-          cmake --build build --config ${BUILD_TYPE} --parallel $(nproc)
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+             nix develop --command cmake --build build --config ${BUILD_TYPE} --parallel $(nproc)
+          else
+             cmake --build build --config ${BUILD_TYPE} --parallel $(nproc)
+          fi
 
       - name: Run Tests
-        run: make test
+        run: |
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+             nix develop --command make test
+          else
+             make test
+          fi
 
       - name: Install
         run: |
-          cd build
-          cmake --install . --config ${BUILD_TYPE}
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+             nix develop --command cmake --install build --config ${BUILD_TYPE}
+          else
+             cd build
+             cmake --install . --config ${BUILD_TYPE}
+          fi
 
       - name: Package (tar install dir)
         run: |
@@ -177,31 +207,58 @@ jobs:
           fetch-depth: 0
           ref: ${{ needs.build-binary.outputs.tag }}
 
+      - name: Install Nix
+        if: matrix.arch == 'aarch64'
+        uses: cachix/install-nix-action@v30
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
       - name: Prepare dirs
         run: mkdir -p build install
 
       - name: Configure CMake
         run: |
-          cd build
-          cmake -G Ninja ..                           \
-            -DCMAKE_BUILD_TYPE=${BUILD_TYPE}          \
-            -DCMAKE_POLICY_VERSION_MINIMUM=3.5        \
-            -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"   \
-            -DVICINAE_PROVENANCE=appimage             \
-            -DLTO=ON
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+            nix develop --command cmake -G Ninja -S . -B build   \
+              -DCMAKE_BUILD_TYPE=${BUILD_TYPE}          \
+              -DCMAKE_POLICY_VERSION_MINIMUM=3.5        \
+              -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"   \
+              -DVICINAE_PROVENANCE=appimage             \
+              -DLTO=ON
+          else
+            cd build
+            cmake -G Ninja ..                           \
+              -DCMAKE_BUILD_TYPE=${BUILD_TYPE}          \
+              -DCMAKE_POLICY_VERSION_MINIMUM=3.5        \
+              -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"   \
+              -DVICINAE_PROVENANCE=appimage             \
+              -DLTO=ON
+          fi
 
       - name: Build
         run: |
-          cmake --build build --config ${BUILD_TYPE} --parallel $(nproc)
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+            nix develop --command cmake --build build --config ${BUILD_TYPE} --parallel $(nproc)
+          else
+            cmake --build build --config ${BUILD_TYPE} --parallel $(nproc)
+          fi
 
       - name: Install
         run: |
-          cmake --install build
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+            nix develop --command cmake --install build
+          else
+            cmake --install build
+          fi
 
       - name: Make AppImage
         run: |
           chmod +x ./scripts/mkappimage.sh
-          ./scripts/mkappimage.sh "${INSTALL_DIR}" "${APP_DIR}"
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+             nix develop --command ./scripts/mkappimage.sh "${INSTALL_DIR}" "${APP_DIR}"
+          else
+             ./scripts/mkappimage.sh "${INSTALL_DIR}" "${APP_DIR}"
+          fi
 
       - name: Upload AppImage to GitHub Release
         uses: softprops/action-gh-release@v2
