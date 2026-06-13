@@ -20,18 +20,18 @@ jobs:
             compiler_name: GCC
             cc: gcc
             cxx: g++
-            runner: [self-hosted, Linux, X64, prod]
+            runner: ${{ (github.repository == 'vicinaehq/vicinae' && '["self-hosted", "Linux", "X64", "prod"]') || 'ubuntu-latest' }}
           - arch: x86_64
             compiler_name: Clang
             cc: clang
             cxx: clang++
-            runner: [self-hosted, Linux, X64, prod]
+            runner: ${{ (github.repository == 'vicinaehq/vicinae' && '["self-hosted", "Linux", "X64", "prod"]') || 'ubuntu-latest' }}
           - arch: aarch64
             compiler_name: GCC
             cc: gcc
             cxx: g++
-            runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
+            runner: '"ubuntu-24.04-arm"'
+    runs-on: ${{ fromJSON(matrix.runner) }}
 
     name: Build (${{ matrix.arch }}, ${{ matrix.compiler_name }})
 
