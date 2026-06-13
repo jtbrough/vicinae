@@ -146,7 +146,7 @@ gh-release:
 	cmake -G Ninja -DCMAKE_INSTALL_PREFIX=dist -DCMAKE_BUILD_TYPE=Release -B $(BUILD_DIR)
 	cmake --build $(BUILD_DIR)
 	cmake --install build
-	tar -czvf vicinae-linux-x86_64-$(TAG).tar.gz -C dist .
+	tar -czvf vicinae-linux-$(shell uname -m)-$(TAG).tar.gz -C dist .
 .PHONY: gh-release
 
 run-limited:

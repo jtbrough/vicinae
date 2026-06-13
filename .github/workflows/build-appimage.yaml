@@ -13,7 +13,15 @@ concurrency:
 
 jobs:
   build:
-    runs-on: [self-hosted, Linux, X64, appimage]
+    strategy:
+      matrix:
+        arch: [x86_64, aarch64]
+        include:
+          - arch: x86_64
+            runner: [self-hosted, Linux, X64, appimage]
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     env:
       INSTALL_DIR: ${{ github.workspace }}/install
 

@@ -16,12 +16,19 @@ concurrency:
 
 jobs:
   build-binary:
-    runs-on: [self-hosted, Linux, X64, prod]
+    strategy:
+      matrix:
+        arch: [x86_64, aarch64]
+        include:
+          - arch: x86_64
+            runner: [self-hosted, Linux, X64, prod]
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: write
     outputs:
       tag: ${{ steps.meta.outputs.tag }}
-      artifact: ${{ steps.meta.outputs.artifact }}
     env:
       BUILD_TYPE: Release
       INSTALL_DIR: ${{ github.workspace }}/install
@@ -49,7 +56,7 @@ jobs:
           fi
 
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "artifact=vicinae-linux-x86_64-$TAG.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "artifact=vicinae-linux-${{ matrix.arch }}-$TAG.tar.gz" >> "$GITHUB_OUTPUT"
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -92,6 +99,7 @@ jobs:
 
       - name: Fetch sponsors
         id: sponsors
+        if: matrix.arch == 'x86_64'
         env:
           GH_TOKEN: ${{ secrets.SPONSORS_TOKEN || github.token }}
         run: |
@@ -136,7 +144,7 @@ jobs:
             ${{ steps.meta.outputs.artifact }}
 
       - name: Append sponsors to release notes
-        if: steps.sponsors.outputs.body != ''
+        if: matrix.arch == 'x86_64' && steps.sponsors.outputs.body != ''
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.tag }}
@@ -146,7 +154,15 @@ jobs:
 
   build-appimage:
     needs: build-binary
-    runs-on: [self-hosted, Linux, X64, appimage]
+    strategy:
+      matrix:
+        arch: [x86_64, aarch64]
+        include:
+          - arch: x86_64
+            runner: [self-hosted, Linux, X64, appimage]
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: write
     env:

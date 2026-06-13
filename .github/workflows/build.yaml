@@ -13,11 +13,9 @@ concurrency:
 
 jobs:
   build:
-    runs-on: [self-hosted, Linux, X64, prod]
-
     strategy:
-      max-parallel: 1
       matrix:
+        arch: [x86_64, aarch64]
         compiler:
           - name: GCC
             cc: gcc
@@ -25,8 +23,14 @@ jobs:
           - name: Clang
             cc: clang
             cxx: clang++
+        include:
+          - arch: x86_64
+            runner: [self-hosted, Linux, X64, prod]
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
 
-    name: Build (${{ matrix.compiler.name }})
+    name: Build (${{ matrix.arch }}, ${{ matrix.compiler.name }})
 
     steps:
       - name: Checkout code
